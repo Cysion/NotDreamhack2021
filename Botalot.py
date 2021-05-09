@@ -20,6 +20,11 @@ templates = {
     "item":["name", "description", "duration", "cost"]
 }
 
+#Template
+#quest:[heroId, name, description, reward, priority, repeatable, startTime, duration],
+#item:[heroId, name, description, duration, cost]
+#hero:[heroId, name]
+
 def dialogue_handler(message, key, indict):
     indict[key] = message.text 
 
