@@ -26,6 +26,9 @@ def sql_conn():
     
     
     return connection
+    
+def sql_diconn(conn):
+        conn.colse()
 
 def main():
     conn = sql_conn()
