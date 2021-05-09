@@ -85,7 +85,7 @@ def getQuestLog(heroId, active = 1):
     curs.execute(sqlQuery)
     toReturn = []
     for c in curs.fetchall():
-        toReturn.append({'heroId':c[1], 'name':c[2], 'description':c[3], 'reward':f'{c[4]} Gold', 'priority':c[5], 'repeatable':c[6], 'startTime':str(c[7]), 'duration':f'{c[8]//60}H {c[8]%60}M', 'active':c[9]})
+        toReturn.append({'questId':c[0], 'name':c[2], 'description':c[3], 'reward':f'{c[4]} Gold', 'priority':c[5], 'repeatable':c[6], 'startTime':str(c[7]), 'duration':f'{c[8]//60}H {c[8]%60}M', 'active':c[9]})
     return toReturn
 
 def registerHero(heroDict):
@@ -102,8 +102,47 @@ def registerHero(heroDict):
         raise ValueError("Hero already exists")
 
 
+def start(heroId, questId):
+    conn = sql.sqlconn.sql_conn()
+    curs = conn.cursor()
+
+    sqlQuery = f"ActiveQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
+    curs.execute(sqlQuery)
+
+    try:
+        if curs.fetchall()[0][0] == 0:
+            sqlQuery = f"update Quest set ActiveQuest = 1 where HeroId = {heroId} and QuestId = {questId}"
+            curs.execute(sqlQuery)
+        else:
+            raise ValueError("Quest is already active")
+    except IndexError:
+        raise IndexError("No quest matching hero and quest id")
+    else:
+        conn.commit()
+
 def turnIn(heroId, questId):
-    pass
+    conn = sql.sqlconn.sql_conn()
+    curs = conn.cursor()
+
+    sqlQuery = f"select Reward, ActiveQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
+    curs.execute(sqlQuery)
+    try:
+        result = curs.fetchall()[0]
+        if result[1] == 1:
+            reward = result[0]
+        else:
+            raise IndexError("Quest not active")
+    except IndexError:
+        raise IndexError("No quest matching hero and quest id")
+    else:
+        sqlQuery = f"update Quest set ActiveQuest = 0 where HeroId = {heroId} and QuestId = {questId}"
+        curs.execute(sqlQuery)
+
+        sqlQuery = f"update Hero set Gold = Gold + {reward} where HeroId = {heroId} and QuestId = {questId}"
+        curs.execute(sqlQuery)
+
+        conn.commit()
+
 
 def abandon(heroId, questId):
     pass
@@ -145,12 +184,13 @@ def main():
     addItem(item)
     
     """
-    #print(getQuestLog(1))
+    print(getQuestLog(1))
+    accept
     #print(getShop(1))
 
     #print(purchase(1,1))
     
-    registerHero({'heroId':55,'name':'Pelle2'})
+    #registerHero({'heroId':55,'name':'Pelle2'})
 
 
 
