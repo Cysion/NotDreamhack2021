@@ -195,8 +195,22 @@ def checkId(heroId):
         print("addTables Error: " + str(err))   
     return False if curs.fetchall() == [] else True
 
+
+def gotNews():
+    conn = sql.sqlconn.sql_conn()
+    curs = conn.cursor()
+
+    timeNow = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    sqlQuery = f"select * from Quest where startTime < '{timeNow}' and ActiveQuest = 0"
+    curs.execute(sqlQuery)
+    toReturn = []
+    for c in curs.fetchall():
+        toReturn.append({'questId':c[0], 'heroId':c[1], 'name':c[2], 'description':c[3], 'reward':f'{c[4]} Gold', 'priority':c[5], 'repeatable':c[6], 'startTime':str(c[7]), 'duration':f'{c[8]//60}H {c[8]%60}M', 'active':c[9]})
+    return toReturn
+
 def main():
-    """
+    
     print(checkId(1))
     quest = {
         'heroId':1,
@@ -205,12 +219,12 @@ def main():
         'reward':'500',
         'priority':'2',
         'repeatable':'daily',
-        'startTime':'2020-05-09 21:00:00',
+        'startTime':'2020-05-09 11:00:00',
         'duration':'30',
         'active':'no'
     }
     addQuest(quest)
-
+    """
     item = {
         'heroId':1,
         'name':'Play WoW',
@@ -222,7 +236,7 @@ def main():
     
     """
     #abandon(1,1)
-    print(getQuestLog(1,0))
+    #print(getQuestLog(1,0))
     #turnIn(1,2)
     #print(getQuestLog(1))
     #start(1,1)
@@ -233,7 +247,7 @@ def main():
     #registerHero({'heroId':55,'name':'Pelle2'})
 
 
-
+    print(gotNews())
 
 if __name__ == '__main__':
     main()
