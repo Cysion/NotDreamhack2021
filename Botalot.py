@@ -15,7 +15,7 @@ TIME_STEP = 60
 
 bot = telebot.TeleBot(TOKEN)
 
-templates{
+templates = {
     "quest":["name", "description", "reward", "priority", "repeatable", "duration"],
     "item":["name", "description", "duration", "cost"]
 }
@@ -24,12 +24,12 @@ def dialogue_handler(message, key, indict):
     indict[key] = message.text 
 
 def interactivity_handler(message, handler_type):
-    result = {"heroid" = message.chat.id}
+    result = {"heroid": message.chat.id}
     template = templates[handler_type]
     for item in template:
         bot.send_message(chat_id, f"Please give the {handler_type} a {item}, good sir")
         bot.register_next_step_handler(message, dialogue_handler)
-    print("result")
+    print(result)
     return result
 
 
@@ -51,20 +51,20 @@ commands:
 /additem
 /log
 /shop
-/register
+/register [name]
 """)
 
 
 @bot.message_handler(commands=['addquest'])
 def frontend_addquest(message):
-	chat_id = message.chat.id
+    chat_id = message.chat.id
     bot.send_message(chat_id, "Let's add a new quest!")
     interactivity_handler(message, "quest")
     
 
 @bot.message_handler(commands=['additem'])
 def frontend_additem(message):
-	chat_id = message.chat.id
+    chat_id = message.chat.id
     bot.send_message(chat_id, "Let's add a new item!")
     interactivity_handler(message, "quest")
 
@@ -72,15 +72,14 @@ def frontend_additem(message):
 def frontend_shop(message):
     pass
 
+@bot.message_handler(commands=['register'])
+def frontend_register(message):
+    pass
+
 def main():
     poll_thread = Thread(target=poll)
     poll_thread.start()
     while(True):
-
-
-
-def poll():
-    bot.polling(True)
 
 
 @bot.message_handler(func=lambda m: True)
