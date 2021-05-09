@@ -22,6 +22,7 @@ create table Quest(
     RepeatableQuest varchar (16),
     startTime datetime,
     Duration int,
+    ActiveQuest bool,
     foreign key (HeroId) references Hero(HeroId)
 );
 $$
