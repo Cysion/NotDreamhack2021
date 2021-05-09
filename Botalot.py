@@ -36,7 +36,7 @@ def dialogue_handler(message, key, indict):
     indict[key] = message.text 
 
 def simple_dialogue_handler(message, returnable):
-    returnable = message.text
+    returnable.append(message)
 
 def interactivity_handler(message, handler_type):
     chat_id = message.chat.id
@@ -86,7 +86,7 @@ quests:
 /addquest
 /log
 /log inactive
-/start [id]
+/queststart [id]
 /turnin [id]
 /abandon [id]
 
@@ -250,7 +250,7 @@ def frontend_abandon(message):
         bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
     return
 
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['queststart'])
 def frontend_start(message):
     chat_id = message.chat.id
     if not quest_manager.checkId(chat_id):
@@ -270,40 +270,52 @@ def frontend_start(message):
 
 def quest_request(quest):
     hero_id = quest["heroId"]
+    chat_id = int(hero_id)
     sendable = "There is a new quest for you, hero! Here are the details...\n"
     for key in quest:
         sendable += f"{key}:{quest[key]}"
-    
+    bot.send_message(chat_id, sendable)
+    """
     markup = types.ReplyKeyboardMarkup()
     itembtny = types.KeyboardButton('Yes')
     itembtnn = types.KeyboardButton('No')
-    markup.row(itembtna, itembtnn)
-    tb.send_message(chat_id, sendable + "Will you take the quest?", reply_markup=markup)
+    markup.row(itembtny, itembtnn)
+    bot.send_message(chat_id, sendable + "Will you take the quest?", reply_markup=markup)
     markup = types.ReplyKeyboardRemove(selective=False)
-    selection = ""
+    selection = []
+    bot.register_next_step_handler(message, simple_dialogue_handler, selection)
+    selection = selection[0]
+    print(selection)
     while not selection:
         if slept >= TIMEOUT:
             bot.send_message(message.chat.id, "You'll have to be faster than that if you want to be a hero, sir")
             return
         time.sleep(0.5)
     sendable = ""
+
     if selection == "Yes":
+        quest_manager.start(hero_id, quest["QuestId"])
         sendable = "Very well sir, I will add the quest to your log!"
     elif selection == "No":
         sendable = "Sir, you know that heroes have to complete quests, no?"
     else:
         sendable = f"What the blazes do you you mean by {selection} sir?"
     
-    tb.send_message(chat_id, message, reply_markup=markup)
+    bot.send_message(chat_id, message, reply_markup=markup)
+    """
 
-    bot.send_message()
+    quest_manager.start(hero_id, int(quest["QuestId"]))
+    bot.send_message(chat_id, "Good luck on your quest!")
 
 def send_notifs():
     try:
-        to_send = quest_manager.gotnews()
-        quest_request(quest)
-    except Exception:
-        return
+        quests = quest_manager.gotNews()
+        print(quests)
+        for quest in quests:
+            pass
+            #quest_request(quest)
+    except Exception as e:
+        print(e)
     """
     threads = []
     for quest in to_send:
