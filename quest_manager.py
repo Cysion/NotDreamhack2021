@@ -5,7 +5,7 @@ def addItem(itemDict):
     pass
 
 def getShop(userId):
-    """Returns list of dicts containing items"""
+    """Returns (list of dicts containing items, gold in users inventory)"""
     pass
 
 def purchase(userId, itemId):
