@@ -88,7 +88,7 @@ def main():
 
 
 @bot.message_handler(func=lambda m: True)
-def echo_all(message):     
+def echo_all(message):
     bot.send_message(message.chat.id, "Command unknown, try again.")
 
 if __name__ == "__main__":
