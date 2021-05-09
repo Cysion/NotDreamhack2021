@@ -1,6 +1,6 @@
 import mysql.connector
 import sql.sqlconn
-from datetime import datetime
+from datetime import datetime, timedelta
 
 #Template
 #quest:[heroId, name, description, reward, priority, repeatable, startTime, duration, active],
@@ -106,7 +106,7 @@ def start(heroId, questId):
     conn = sql.sqlconn.sql_conn()
     curs = conn.cursor()
 
-    sqlQuery = f"ActiveQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
+    sqlQuery = f"select ActiveQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
     curs.execute(sqlQuery)
 
     try:
@@ -124,7 +124,7 @@ def turnIn(heroId, questId):
     conn = sql.sqlconn.sql_conn()
     curs = conn.cursor()
 
-    sqlQuery = f"select Reward, ActiveQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
+    sqlQuery = f"select Reward, ActiveQuest, RepeatableQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
     curs.execute(sqlQuery)
     try:
         result = curs.fetchall()[0]
@@ -135,17 +135,54 @@ def turnIn(heroId, questId):
     except IndexError:
         raise IndexError("No quest matching hero and quest id")
     else:
+        if result[2] == 'daily':
+            newTime = datetime.now() + timedelta(days=1)
+            newTime = "'" + newTime.strftime("%Y-%m-%d")
+            newTime += " 08:00:00'"
+        else:
+            newTime = 'null'
+
+        sqlQuery = f"update Quest set StartTime = {newTime} where HeroId = {heroId} and QuestId = {questId}"
+        curs.execute(sqlQuery)
+
         sqlQuery = f"update Quest set ActiveQuest = 0 where HeroId = {heroId} and QuestId = {questId}"
         curs.execute(sqlQuery)
 
-        sqlQuery = f"update Hero set Gold = Gold + {reward} where HeroId = {heroId} and QuestId = {questId}"
+        sqlQuery = f"update Hero set Gold = Gold + {reward} where HeroId = {heroId}"
         curs.execute(sqlQuery)
 
         conn.commit()
 
 
 def abandon(heroId, questId):
-    pass
+    conn = sql.sqlconn.sql_conn()
+    curs = conn.cursor()
+
+    sqlQuery = f"select Reward, ActiveQuest, RepeatableQuest from Quest where HeroId = {heroId} and QuestId = {questId}"
+    curs.execute(sqlQuery)
+    try:
+        result = curs.fetchall()[0]
+        if result[1] == 1:
+            reward = result[0]
+        else:
+            raise IndexError("Quest not active")
+    except IndexError:
+        raise IndexError("No quest matching hero and quest id")
+    else:
+        if result[2] == 'daily':
+            newTime = datetime.now() + timedelta(days=1)
+            newTime = "'" + newTime.strftime("%Y-%m-%d")
+            newTime += " 08:00:00'"
+        else:
+            newTime = 'null'
+
+        sqlQuery = f"update Quest set StartTime = {newTime} where HeroId = {heroId} and QuestId = {questId}"
+        curs.execute(sqlQuery)
+
+        sqlQuery = f"update Quest set ActiveQuest = 0 where HeroId = {heroId} and QuestId = {questId}"
+        curs.execute(sqlQuery)
+
+        conn.commit()
 
 
 def checkId(heroId):
@@ -184,8 +221,11 @@ def main():
     addItem(item)
     
     """
-    print(getQuestLog(1))
-    accept
+    #abandon(1,1)
+    print(getQuestLog(1,0))
+    #turnIn(1,2)
+    #print(getQuestLog(1))
+    #start(1,1)
     #print(getShop(1))
 
     #print(purchase(1,1))
