@@ -4,7 +4,7 @@ import time
 from threading import Thread
 import os
 import json
-
+from bot_add_helpers import *
 
 TOKEN = str() 
 with open("API-KEY") as f:
@@ -15,11 +15,27 @@ TIME_STEP = 60
 
 bot = telebot.TeleBot(TOKEN)
 
+templates{
+    "quest":["name", "description", "reward", "priority", "repeatable", "duration"],
+    "item":["name", "description", "duration", "cost"]
+}
+
+def dialogue_handler(message, key, indict):
+    indict[key] = message.text 
+
+def interactivity_handler(message, handler_type):
+    result = {"heroid" = message.chat.id}
+    template = templates[handler_type]
+    for item in template:
+        bot.send_message(chat_id, f"Please give the {handler_type} a {item}, good sir")
+        bot.register_next_step_handler(message, dialogue_handler)
+    print("result")
+    return result
 
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-	bot.reply_to(message, """
+	bot.send_message(message.chat.id, """
 Greetings hero!
 Welcome to the magical realm of Earth, where all sorts of adventures take place!
 Now to get started you need to specify what you wish to get done! 
@@ -29,17 +45,32 @@ to summon further, and more detailed help, use the /help command
 
 @bot.message_handler(commands=['help'])
 def send_help(message):
-	bot.reply_to(message, """
+	bot.send_message(message.chat.id, """
 commands:
 /addquest
 /additem
-
+/log
+/shop
+/register
 """)
 
-@bot.message_handler(commands=['remind'])
-def remind(message):
-    pass
 
+@bot.message_handler(commands=['addquest'])
+def frontend_addquest(message):
+	chat_id = message.chat.id
+    bot.send_message(chat_id, "Let's add a new quest!")
+    interactivity_handler(message, "quest")
+    
+
+@bot.message_handler(commands=['additem'])
+def frontend_additem(message):
+	chat_id = message.chat.id
+    bot.send_message(chat_id, "Let's add a new item!")
+    interactivity_handler(message, "quest")
+
+@bot.message_handler(commands=['shop'])
+def frontend_shop(message):
+    pass
 
 def main():
     poll_thread = Thread(target=poll)
