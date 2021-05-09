@@ -21,6 +21,12 @@ templates = {
     "item":["name", "description", "duration", "cost"]
 }
 
+
+backend_adders = {
+    "quest":quest_manager.addQuest,
+    "item":quest_manager.addItem
+}
+
 #Template
 #quest:[heroId, name, description, reward, priority, repeatable, startTime, duration],
 #item:[heroId, name, description, duration, cost]
@@ -33,18 +39,27 @@ def simple_dialogue_handler(message, returnable):
     returnable = message.text
 
 def interactivity_handler(message, handler_type):
-    result = {"heroid": message.chat.id}
+    chat_id = message.chat.id
+    result = {"heroid": chat_id}
     template = templates[handler_type]
     for item in template:
-        bot.send_message(message.chat.id, f"Please give the {handler_type} a {item}, good sir")
+        bot.send_message(chat_id, f"Please give the {handler_type} a {item}, good sir")
         bot.register_next_step_handler(message, dialogue_handler, item, result)
         slept = 0
         while item not in result.keys():
             if slept >= TIMEOUT:
-                bot.send_message(message.chat.id, "You'll have to be faster than that if you want to be a hero, sir")
+                bot.send_message(chat_id, "You'll have to be faster than that if you want to be a hero, sir")
+                #raise TimeoutError("user too slow")
                 return
             time.sleep(0.5)
-    return result
+    #return result
+    try:
+        backend_adders[desctype](result)
+        bot.send_message(chat_id, f"Quest sucessfully added!")
+    except Exception as e:
+        bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
+    return
+    
 
 
 @bot.message_handler(commands=['start'])
@@ -61,6 +76,8 @@ to summon further, and more detailed help, use the /help command
 @bot.message_handler(commands=['help'])
 def send_help(message):
 	bot.send_message(message.chat.id, """
+You already forgot the commands sir?
+Well here they are
 commands:
 /register [name]
 /cheat [code]
@@ -68,6 +85,7 @@ commands:
 quests:
 /addquest
 /log
+/log inactive
 /start [id]
 /turnin [id]
 /abandon [id]
@@ -93,25 +111,20 @@ def send_help(message):
     else:
         codes[code]
 
-backend_adders = {
-    "quest":quest_manager.addQuest,
-    "item":quest_manager.addItem
-}
 
-@bot.message_handler(commands=['addquest', "additem"])
-def frontend_add(message):
-    chat_id = message.chat.id
 
 @bot.message_handler(commands=['addquest', "additem"])
 def frontend_add(message):
     chat_id = message.chat.id
     if not quest_manager.checkId(chat_id):
         bot.send_message(chat_id, "You're not registered")
-        return
+        #return
     chat_id = message.chat.id
     desctype = message.text[4:]
     bot.send_message(chat_id, f"Let's add a new {desctype}!")
-    #addbot = Thread(target=interactivity_handler, args=(message, desctype))
+    addbot = Thread(target=interactivity_handler, args=(message, desctype))
+    addbot.start()
+    """
     try:
         to_backend = interactivity_handler(message, desctype)
         backend_adders[desctype](to_backend)
@@ -120,18 +133,20 @@ def frontend_add(message):
     except Exception as e:
         bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
     return
+    """
 
-@bot.message_handler(commands=['log'])
+@bot.message_handler(commands=['log', 'log inactive'])
 def frontend_log(message):
     chat_id = message.chat.id
     if not quest_manager.checkId(chat_id):
         bot.send_message(chat_id, "You're not registered")
         return
-    loglist = quest_manager.getQuestLog(chat_id)
+    loglist = quest_manager.getQuestLog(chat_id, "inactive" not in message.text)
     sendable = ""
     for quest in loglist:
         for key in quest:
             sendable += key + ":" + quest[key]
+    bot.send_message(chat_id, sendable)
 
 
 
@@ -192,6 +207,8 @@ def frontend_register(message):
             herodict={"heroid":message.chat.id, "name":name}
             quest_manager.registerHero(herodict)
             print(herodict)
+        except ValueError:
+            bot.send_message(message.chat.id, f"Sir, you are already registered!")
         except Exception:
             bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
         return
@@ -231,6 +248,24 @@ def frontend_abandon(message):
         bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
     return
 
+@bot.message_handler(commands=['start'])
+def frontend_start(message):
+    chat_id = message.chat.id
+    if not quest_manager.checkId(chat_id):
+        bot.send_message(chat_id, "You're not registered")
+        return
+    try:
+        selection = int(message.text.split(" ")[-1])
+        quest_manager.start(chat_id, selection)
+        bot.send_message(chat_id, "Very good sir, I will make the appropriate entry in your log")
+        print(chat_id, " started ", selection)
+    except TypeError:
+        bot.send_message(chat_id, f"Whatever {selection} is, it's not a quest, sir!")
+    except Exception as e:
+        bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
+    return
+
+
 def quest_request(quest):
     hero_id = quest["heroid"]
     sendable = "There is a new quest for you, hero! Here are the details...\n"
@@ -251,7 +286,7 @@ def quest_request(quest):
         time.sleep(0.5)
     sendable = ""
     if selection == "Yes":
-        sendable = "Very well sir, I will add the quest to your journal!"
+        sendable = "Very well sir, I will add the quest to your log!"
     elif selection == "No":
         sendable = "Sir, you know that heroes have to complete quests, no?"
     else:
@@ -274,7 +309,7 @@ def main():
         
 @bot.message_handler(func=lambda m: True)
 def echo_all(message):
-    bot.send_message(message.chat.id, "Command unknown, try again.")
+    bot.send_message(message.chat.id, "What in the blazes are you trying to say, sir?")
 
 if __name__ == "__main__":
     main()
