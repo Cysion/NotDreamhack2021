@@ -48,7 +48,7 @@ def getShop(heroId):
     curs.execute(sqlQuery)
     toReturn = []
     for c in curs.fetchall():
-        toReturn.append({'heroId':c[1], 'name':c[2], 'description':c[3], 'duration':f'{c[4]//60}H {c[4]%60}M', 'cost':c[5]})
+        toReturn.append({'ItemId':c[0], 'name':c[2], 'description':c[3], 'duration':f'{c[4]//60}H {c[4]%60}M', 'cost':c[5]})
     sqlQuery = f"select Gold from Hero where HeroId = {heroId}"
     curs.execute(sqlQuery)
     return toReturn, curs.fetchall()[0][0]
