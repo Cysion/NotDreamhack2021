@@ -17,7 +17,7 @@ TIMEOUT = 60
 bot = telebot.TeleBot(TOKEN)
 
 templates = {
-    "quest":["name", "description", "reward", "priority", "repeatable", "start time", "duration", "active"],
+    "quest":["name", "description", "reward", "priority", "repeatable", "startTime", "duration", "active"],
     "item":["name", "description", "duration", "cost"]
 }
 
@@ -40,7 +40,7 @@ def simple_dialogue_handler(message, returnable):
 
 def interactivity_handler(message, handler_type):
     chat_id = message.chat.id
-    result = {"heroid": chat_id}
+    result = {"heroId": chat_id}
     template = templates[handler_type]
     for item in template:
         bot.send_message(chat_id, f"Please give the {handler_type} a {item}, good sir")
@@ -54,8 +54,8 @@ def interactivity_handler(message, handler_type):
             time.sleep(0.5)
     #return result
     try:
-        backend_adders[desctype](result)
-        bot.send_message(chat_id, f"Quest sucessfully added!")
+        backend_adders[handler_type](result)
+        bot.send_message(chat_id, f"{handler_type} sucessfully added!")
     except Exception as e:
         bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
     return
@@ -118,7 +118,7 @@ def frontend_add(message):
     chat_id = message.chat.id
     if not quest_manager.checkId(chat_id):
         bot.send_message(chat_id, "You're not registered")
-        #return
+        return
     chat_id = message.chat.id
     desctype = message.text[4:]
     bot.send_message(chat_id, f"Let's add a new {desctype}!")
@@ -145,9 +145,11 @@ def frontend_log(message):
     sendable = ""
     for quest in loglist:
         for key in quest:
-            sendable += key + ":" + quest[key]
-    bot.send_message(chat_id, sendable)
-
+            sendable += str(key) + ":" + str(quest[key]) + "\n"
+    if sendable:
+        bot.send_message(chat_id, sendable)
+    else:
+        bot.send_message(chat_id, "nothing to see here, sir!")
 
 
 @bot.message_handler(commands=['shop'])
@@ -158,11 +160,10 @@ def frontend_shop(message):
         return
     shop, balance = quest_manager.getShop(chat_id)
     formatted_shop = ("\n".join([f"{x}:{item[x]}" for x in item.keys()]) for item in shop)
-    for ind in range(len(formatted_shop)):
-        formatted_shop[ind] = "{ind}:\n" + formatted_shop[ind]
-        options.append(str(ind))
-    balance = f"Your account balance is: {balance}\n"
-    bot.send_message(chat_id, balance + formatted_shop)
+    sendable = f"Your account balance is: {balance}\n"
+    for item in formatted_shop:
+        sendable += item + "\n\n"
+    bot.send_message(chat_id, sendable)
     """
     slept = 0
     selection = ""
@@ -199,20 +200,21 @@ def frontend_buy(message):
 
 @bot.message_handler(commands=['register'])
 def frontend_register(message):
+    chat_id = message.chat.id
     if len(message.text.split(" ")) < 2:
-        bot.send_message(message.chat.id, f"You gave me no name sir!")
+        bot.send_message(chat_id, f"You gave me no name sir!")
     else:
         name = message.text.split(" ")[-1]
         try:
-            herodict={"heroid":message.chat.id, "name":name}
+            herodict={"heroId":chat_id, "name":name}
             quest_manager.registerHero(herodict)
             print(herodict)
         except ValueError:
-            bot.send_message(message.chat.id, f"Sir, you are already registered!")
-        except Exception:
+            bot.send_message(chat_id, f"Sir, you are already registered!")
+        except Exception as e:
             bot.send_message(chat_id, f"something terrible happened on the back end, sir. the goblins said it was {e}")
         return
-        bot.send_message(message.chat.id, f"Welcome to the guild of heroes, {name}")
+        bot.send_message(chat_id, f"Welcome to the guild of heroes, {name}")
 
 @bot.message_handler(commands=['turnin'])
 def frontend_turnin(message):
@@ -267,7 +269,7 @@ def frontend_start(message):
 
 
 def quest_request(quest):
-    hero_id = quest["heroid"]
+    hero_id = quest["heroId"]
     sendable = "There is a new quest for you, hero! Here are the details...\n"
     for key in quest:
         sendable += f"{key}:{quest[key]}"
@@ -296,6 +298,21 @@ def quest_request(quest):
 
     bot.send_message()
 
+def send_notifs():
+    try:
+        to_send = quest_manager.gotnews()
+        quest_request(quest)
+    except Exception:
+        return
+    """
+    threads = []
+    for quest in to_send:
+        threads.append8Thread(target=quest_request, args=(quest,)))
+    for thread in threads:
+        thread.start()
+    for thread in thread:
+        thread.join()
+    """
 
 def poll():
     bot.polling(True)
@@ -305,6 +322,7 @@ def main():
     poll_thread.start()
     while(True):
         print("tick")
+        send_notifs()
         time.sleep(TIME_STEP)
         
 @bot.message_handler(func=lambda m: True)
